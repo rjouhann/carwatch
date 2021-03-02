@@ -1,17 +1,22 @@
 
 
-Install on Mac
-==============
+Install
+=======
 
+Python librairies needed:
+```
 pip3 install opencv-python
 pip3 install pytesseract
 pip3 install matplotlib
 pip3 install pandas
+```
 
+OpenCV install on Mac:
+```
 brew install opencv3
 echo 'export PATH="/usr/local/opt/qt/bin:$PATH"' >> ~/.bash_profile
 source ~/.bash_profile
-
+```
 
 Resources
 =========
