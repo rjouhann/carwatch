@@ -19,7 +19,7 @@ import app_config
 
 #video = "rtsp://" + app_config.rtsp_user + ":" + app_config.rtsp_password + "@" + app_config.rtsp_ip + ":" + app_config.rtsp_port + app_config.rtsp_channel
 # for dev
-video = "media/2.mp4"
+video = "media/1.mp4"
 
 def send_email_notification(text, html, image, subject, receiver_email):
     message = MIMEMultipart("alternative")
@@ -87,7 +87,7 @@ def build_report():
     pyplot.legend()
     pyplot.tight_layout()
     pyplot.subplots_adjust(top=0.88)
-    pyplot.suptitle('Maxwell parking garage gate traffic', fontsize=20)
+    pyplot.suptitle(app_config.report_title, fontsize=20)
     pyplot.savefig('tmp/carwatch-report.jpg')
     if app_config.debug:
         pyplot.show()
@@ -112,6 +112,8 @@ if os.path.isfile('tmp/b'):
     os.remove("tmp/b")
 if os.path.isfile('tmp/good'):
     os.remove("tmp/good")
+if os.path.isfile('tmp/bad'):
+    os.remove("tmp/bad")
 if os.path.isfile('tmp/mail'):
     os.remove("tmp/mail")
 if os.path.isfile('media/debug1.avi'):
@@ -167,70 +169,83 @@ while(cap.isOpened()):
         cv2.rectangle(frames,(x,y),(x+w,y+h),(255,0,255),4)
         car = 1
 
-    if os.path.isfile('tmp/good'):
-        k += 1
-        # if app_config.debug:
-        #    print('\t\tdebug k = ' + str(k))
-        # after car has been flag good, let's always reset i and j to 0 giving some time for the good car to leave
-        if k < 600:
-            cv2.putText(frames, 'GOOD CAR', position, font, 2, (0, 204, 0), 4, cv2.LINE_4)
-            i = 0
-            j = 0
-        if k == 600:
-            print(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')')
-            os.remove("tmp/good")
-            file = open("data/cars.csv", "a")
-            file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",good\n")
-            file.close()
-
-    if car == 1:
+    # if there is a car and no good or bad cars have been detected
+    if car == 1 and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
         i += 1
-        # if app_config.debug:
-        #     print('debug i = ' + str(i))
-        if not os.path.isfile('tmp/good'):
-            if i > 1 and i < 10:
-                cv2.putText(frames, '...', position, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
-                if app_config.debug:
-                    print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
-            if i == 10:
-                print(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')')
-                file = open("tmp/a", "w")
-                file.close()
-            if i >= 10 and i <400:
-                cv2.putText(frames, 'CAR DETECTED', position, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
-            if i == 400:
-                file = open("tmp/b", "w")
-                file.close()
-                if app_config.debug:
-                    print(str(datetime.datetime.now().strftime("%x %X")) + ': car waited (i = ' + str(i) +')')
+        if app_config.debug:
+            print('debug i = ' + str(i))
+        if i > 1 and i < 10:
+            cv2.putText(frames, '...', position, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
+            if app_config.debug:
+                print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
+        if i == 10:
+            print(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')')
+            file = open("tmp/a", "w")
+            file.close()
+        if i >= 10 and i <400:
+            cv2.putText(frames, 'CAR DETECTED', position, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
+        if i == 400:
+            file = open("tmp/b", "w")
+            file.close()
+            if app_config.debug:
+                print(str(datetime.datetime.now().strftime("%x %X")) + ': car waited (i = ' + str(i) +')')
 
+    # If car waited enough time, call it it good
     if os.path.isfile('tmp/a') and os.path.isfile('tmp/b'):
         os.remove("tmp/a")
         os.remove("tmp/b")
-        i = 0
-        k = 0
         print(str(datetime.datetime.now().strftime("%x %X")) + ': good car')
         file = open("tmp/good", "w")
         file.close()
 
-    if car == 0 and os.path.isfile('tmp/a'):
+    # if no car on the frame but a car has been detected, not tagged as good or bad yet
+    # This logic is to detect bad cars
+    if car == 0 and os.path.isfile('tmp/a') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
         j += 1
-        # if app_config.debug:
-        #     print('\tdebug j = ' + str(j))
+        if app_config.debug:
+            print('\tdebug j = ' + str(j))
         if i >= 10 and i <400:
             cv2.putText(frames, 'CAR DETECTED', position, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
         # wait for some time before call the car gone and reset the loop
         if j == 700:
             print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (reset loop i = ' + str(i) +')')
+            file = open("tmp/bad", "w")
+            file.close()
+
+    if os.path.isfile('tmp/good'):
+        k += 1
+        if app_config.debug:
+            print('\t\tdebug k = ' + str(k))
+        # after car has been flag good, let's always reset i and j to 0 giving some time for the good car to leave
+        if k < 400:
+            cv2.putText(frames, 'GOOD CAR', position, font, 2, (0, 204, 0), 4, cv2.LINE_4)
+        if k == 400:
+            print(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')')
+            os.remove("tmp/good")
+            file = open("data/cars.csv", "a")
+            file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",good\n")
+            file.close()
             i = 0
-        if j > 700 and j < 900:
+            j = 0
+            k = 0
+
+    if os.path.isfile('tmp/bad'):
+        k += 1
+        if app_config.debug:
+            print('\t\tdebug k = ' + str(k))
+        # after car has been flag good, let's always reset i and j to 0 giving some time for the good car to leave
+        if k < 400:
             cv2.putText(frames, 'BAD CAR !', position, font, 2, (0, 255, 255), 4, cv2.LINE_4)
-        if j == 800:
+        if k == 400:
+            print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (reset loop k = ' + str(k) +')')
+            os.remove("tmp/bad")
+            os.remove("tmp/a")
             file = open("data/cars.csv", "a")
             file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",bad\n")
             file.close()
-            os.remove("tmp/a")
+            i = 0
             j = 0
+            k = 0
 
     # save video in a file
     if app_config.record:
@@ -241,7 +256,7 @@ while(cap.isOpened()):
         cv2.imshow('window', frames)
 
     # first day of the week, email report
-    if datetime.date.today().weekday() == 0 and not os.path.isfile('tmp/mail'):
+    if datetime.date.today().weekday() == app_config.report_day and not os.path.isfile('tmp/mail'):
         print("First day of the week, Build the report")
         good, bad = build_report()
         print("Now, emailing it.")
@@ -257,12 +272,12 @@ while(cap.isOpened()):
         </body>
         </html>
         """
-        subject = '[carwatch] Weekly Report Maxwell Parking Garage Gate'
+        subject = '[carwatch] ' + app_config.report_title
         result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', subject, app_config.receiver_email)
         file = open("tmp/mail", "w")
         file.close()
 
-    if datetime.date.today().weekday() != 0 and os.path.isfile('tmp/mail'):
+    if datetime.date.today().weekday() != app_config.report_day and os.path.isfile('tmp/mail'):
         if app_config.debug:
             print('debug delete tmp/mail')
         os.remove("tmp/mail")

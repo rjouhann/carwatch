@@ -10,5 +10,8 @@ rtsp_ip = "10.1.1.10"
 rtsp_port = "554"
 rtsp_channel = "/Streaming/Channels/101/Streaming/Channels/1"
 
+report_title = "Parking garage gate traffic"
+report_day = 0 # Monday, which day of the week the report is sent
+
 record = False # True/False
 debug = False # True/False
