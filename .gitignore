@@ -1,0 +1,6 @@
+app_config.py
+data
+tmp
+media
+*.bkp
+__pycache__
