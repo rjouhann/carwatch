@@ -3,4 +3,6 @@ data
 tmp
 media
 *.bkp
+*.bak
 __pycache__
+.DS_Store

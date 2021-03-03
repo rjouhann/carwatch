@@ -1,3 +1,7 @@
+Overview
+========
+
+The goal of this program is to capture a video stream and detect cars waiting at the parking garage gate for it to close before leaving.
 
 
 Install

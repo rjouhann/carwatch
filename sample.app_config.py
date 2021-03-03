@@ -15,3 +15,13 @@ report_day = 0 # Monday, which day of the week the report is sent
 
 record = False # True/False
 debug = False # True/False
+
+# RTSP video stream
+video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
+
+# detection bad car limit
+limit = 300
+# detection car settings
+scaleFactor = 1.03
+minNeighbors = 4
+minSize = (150,150)
