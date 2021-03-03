@@ -13,6 +13,7 @@ rtsp_channel = "/Streaming/Channels/101/Streaming/Channels/1"
 report_title = "Parking garage gate traffic"
 report_day = 0 # Monday, which day of the week the report is sent
 
+screenshots = True # True/False
 record = False # True/False
 debug = False # True/False
 
@@ -20,8 +21,8 @@ debug = False # True/False
 video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
 
 # detection bad car limit
-limit = 300
+limit = 200
 # detection car settings
 scaleFactor = 1.03
 minNeighbors = 4
-minSize = (150,150)
+minSize = (130,130)

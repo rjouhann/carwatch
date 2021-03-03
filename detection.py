@@ -1,26 +1,30 @@
 # OpenCV Python program to detect cars in video frame
 # import libraries of python OpenCV 
-import os
 import cv2
 import gc
 from multiprocessing import Process, Manager
 import datetime
 from datetime import timedelta
+import os, time
 import os.path
 from os import path
+import glob
 # used to send email
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from email.mime.base import MIMEBase
+from email import encoders
 # used for the report
 import pandas as pd
 from matplotlib import pyplot
+import zipfile
 # import user config
 import app_config
 
 # send report by email
-def send_email_notification(text, html, image, subject, receiver_email):
+def send_email_notification(text, html, image, zip_name, subject, receiver_email):
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
     message["From"] = app_config.gmail_user 
@@ -34,8 +38,21 @@ def send_email_notification(text, html, image, subject, receiver_email):
     msgImage = MIMEImage(fp.read())
     fp.close()
 
+    # Add image report
+    filename1 = os.path.basename(image)
     msgImage.add_header('Content-ID', '<image1>')
     message.attach(msgImage)
+    print('Includes: ' + str(filename1))
+
+    # Add zip file
+    if app_config.screenshots:
+        filename2 = os.path.basename(zip_name)
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(open(zip_name, "rb").read())
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", "attachment; filename=\"%s\"" % (filename2))
+        message.attach(part)
+        print('Includes: ' + str(filename2))
 
     # Add HTML/plain-text parts to MIMEMultipart message
     # The email client will try to render the last part first
@@ -43,13 +60,19 @@ def send_email_notification(text, html, image, subject, receiver_email):
     message.attach(part2)
 
     if app_config.debug:
-        print("SMTP server: " + str(app_config.smtp_server))
+        print("SMTP server used: " + str(app_config.smtp_server))
     server = smtplib.SMTP(app_config.smtp_server, app_config.smtp_port)
     server.ehlo()
     server.starttls()
     server.login(app_config.gmail_user, app_config.gmail_password)
     result_email = server.sendmail(app_config.gmail_user, app_config.receiver_email.split(','), message.as_string())
     server.quit()
+
+def zipdir(path, ziph):
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            ziph.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
 
 # build weekly report
 def build_report():
@@ -91,7 +114,20 @@ def build_report():
     pyplot.savefig('tmp/carwatch-report.jpg')
     if app_config.debug:
         pyplot.show()
-    return(good, bad)
+
+    if app_config.screenshots:
+        print('\nArchive screenshots')
+        # zip all files available
+        zip_name = 'archive/' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + '_screenshots.zip'
+        zipf = zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED)
+        zipdir('img/', zipf)
+        zipf.close()
+        # delete screenshots zipped
+        files = glob.glob('img/*')
+        for f in files:
+            os.remove(f)
+
+    return(good, bad, zip_name)
 
 # write data to the shared buffer stack:
 def write(stack, cam, top: int) -> None:
@@ -104,13 +140,13 @@ def write(stack, cam, top: int) -> None:
     print('Process to write: %s' % os.getpid())
     cap = cv2.VideoCapture(cam)
 
-    # record the stream
+    # record the stream before processing
     if app_config.record:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) + 0.5)
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
         size = (width, height)
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter('./media/debug.avi', fourcc, 20.0, size)
+        out1 = cv2.VideoWriter('video/debug.avi', fourcc, 20.0, size)
 
     while True:
         _, img = cap.read()
@@ -118,7 +154,7 @@ def write(stack, cam, top: int) -> None:
             stack.append(img)
             # save video in a file
             if app_config.record:
-                out.write(img)
+                out1.write(img)
 
             # Clear the buffer stack every time it reaches a certain capacity
             # Use the gc library to manually clean up memory garbage to prevent memory overflow
@@ -126,10 +162,21 @@ def write(stack, cam, top: int) -> None:
                 del stack[:]
                 gc.collect()
 
+    # De-allocate any associated memory usage
+    cap.release()
+    if app_config.record:
+        out1.release()
+    cv2.destroyAllWindows()
+
+def file_age(filepath):
+    return time.time() - os.path.getmtime(filepath)
 
 # read data in the buffer stack:
 def read(stack) -> None:
     print('Process to read: %s' % os.getpid())
+    i = 0
+    j = 0
+    k = 0
     while True:
         if len(stack) != 0:
             # print('debug time = ' + str(datetime.datetime.now()))
@@ -159,6 +206,13 @@ def read(stack) -> None:
                 cv2.rectangle(frames,(x,y),(x+w,y+h),(255,0,255),4)
                 car = 1
 
+            # if something has been deteted but likely not a car so reseting after 20 seconds
+            if car == 0 and os.path.isfile('tmp/something') and not os.path.isfile('tmp/unknown') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
+                if file_age('tmp/something') > 60:
+                    print(str(datetime.datetime.now().strftime("%x %X")) + ': incorrect detection, probably not a car (reset loop i = ' + str(i) +')')
+                    os.remove("tmp/something")
+                    i = 0
+
             # if there is a car and no good or bad cars have been detected
             if car == 1 and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 i += 1
@@ -166,10 +220,16 @@ def read(stack) -> None:
                     print('debug i = ' + str(i))
                 if i > 1 and i < 10:
                     cv2.putText(frames, '...', position, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
-                    if app_config.debug:
-                        print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
+                    print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
+                    file = open("tmp/something", "w")
+                    file.close()
                 if i == 10:
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')')
+                    os.remove("tmp/something")
+                    # save picture of the car detected
+                    if app_config.screenshots:
+                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M")) + '_detected.jpg'
+                        cv2.imwrite(img_name, frames) 
                     file = open("tmp/unknown", "w")
                     file.close()
                 if i >= 10 and i < app_config.limit:
@@ -179,7 +239,6 @@ def read(stack) -> None:
                     file = open("tmp/good", "w")
                     file.close()
 
-
             # if no car on the frame but a car has been detected, not tagged as good or bad yet
             # This logic is to detect bad cars
             if car == 0 and os.path.isfile('tmp/unknown') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
@@ -187,22 +246,27 @@ def read(stack) -> None:
                 if app_config.debug:
                     print('\tdebug j = ' + str(j))
                 if i >= 10 and i < app_config.limit:
-                    cv2.putText(frames, 'CAR DETECTED', position, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
+                    cv2.putText(frames, 'CAR DETECTED', position, font, 2, (255, 128, 0), 4, cv2.LINE_4)
                 # wait for some time before call the car gone and reset the loop
                 if j == 700:
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (reset loop i = ' + str(i) +')')
                     file = open("tmp/bad", "w")
                     file.close()
-
+                        
             # GOOD car detected
             if os.path.isfile('tmp/good'):
                 k += 1
                 if app_config.debug:
                     print('\t\tdebug k = ' + str(k))
+                if k == 1:
+                    # save images shots of key moments
+                    if app_config.screenshots:
+                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M")) + '_good_car.jpg'
+                        cv2.imwrite(img_name, frames) 
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
-                if k < (int(app_config.limit)+100):
+                if k < (int(app_config.limit)+150):
                     cv2.putText(frames, 'GOOD CAR', position, font, 2, (0, 204, 0), 4, cv2.LINE_4)
-                if k == (int(app_config.limit)+100):
+                if k == (int(app_config.limit)+150):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')')
                     os.remove("tmp/good")
                     file = open("data/cars.csv", "a")
@@ -217,10 +281,15 @@ def read(stack) -> None:
                 k += 1
                 if app_config.debug:
                     print('\t\tdebug k = ' + str(k))
+                if k == 1:
+                    # save images shots of key moments
+                    if app_config.screenshots:
+                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M")) + '_bad_car.jpg'
+                        cv2.imwrite(img_name, frames) 
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
-                if k < (int(app_config.limit)+100):
+                if k < (int(app_config.limit)+150):
                     cv2.putText(frames, 'BAD CAR !', position, font, 2, (0, 255, 255), 4, cv2.LINE_4)
-                if k == (int(app_config.limit)+100):
+                if k == (int(app_config.limit)+150):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (reset loop k = ' + str(k) +')')
                     os.remove("tmp/bad")
                     os.remove("tmp/unknown")
@@ -238,7 +307,7 @@ def read(stack) -> None:
             # first day of the week, email report
             if datetime.date.today().weekday() == app_config.report_day and not os.path.isfile('tmp/mail'):
                 print("First day of the week, Build the report")
-                good, bad = build_report()
+                good, bad, zip_name = build_report()
                 print("Now, emailing it.")
                 text = 'Email only available in HTML format.'
                 html = """\
@@ -252,8 +321,8 @@ def read(stack) -> None:
                 </body>
                 </html>
                 """
-                subject = '[carwatch] ' + app_config.report_title
-                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', subject, app_config.receiver_email)
+                subject = '[carwatch] ' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + ' ' + app_config.report_title
+                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', zip_name, subject, app_config.receiver_email)
                 file = open("tmp/mail", "w")
                 file.close()
 
@@ -266,20 +335,28 @@ def read(stack) -> None:
             if key == ord('q'):
                 break
 
+    # De-allocate any associated memory usage
+    if app_config.record:
+        out2.release()
+    cv2.destroyAllWindows()
+
+
 if __name__ == '__main__':
     print(str(datetime.datetime.now().strftime("%x %X")) + ': start')
-
-    i = 0
-    j = 0
-    k = 0
 
     if not os.path.exists('tmp'):
         os.makedirs('tmp')
     if not os.path.exists('data'):
         os.makedirs('data')
-    if not os.path.exists('media'):
-        os.makedirs('media')
+    if not os.path.exists('video'):
+        os.makedirs('video')
+    if not os.path.exists('img'):
+        os.makedirs('img')
+    if not os.path.exists('archive'):
+        os.makedirs('archive')
 
+    if os.path.isfile('tmp/something'):
+        os.remove("tmp/something")
     if os.path.isfile('tmp/unknown'):
         os.remove("tmp/unknown")
     if os.path.isfile('tmp/good'):
@@ -288,10 +365,8 @@ if __name__ == '__main__':
         os.remove("tmp/bad")
     if os.path.isfile('tmp/mail'):
         os.remove("tmp/mail")
-    if os.path.isfile('media/debug1.avi'):
-        os.remove("media/debug1.avi")
-    if os.path.isfile('media/debug2.avi'):
-        os.remove("media/debug2.avi")
+    if os.path.isfile('video/debug.avi'):
+        os.remove("video/debug.avi")
 
     video = app_config.video
     print(str(datetime.datetime.now().strftime("%x %X")) + ': video = ' + str(video))

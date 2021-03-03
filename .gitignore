@@ -2,6 +2,8 @@ app_config.py
 data
 tmp
 media
+video
+img
 *.bkp
 *.bak
 __pycache__
