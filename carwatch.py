@@ -280,7 +280,7 @@ def read(stack) -> None:
                 if k == 1:
                     # save images shots of key moments
                     if app_config.screenshots:
-                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M")) + '_bad_car.jpg'
+                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_bad_car.jpg'
                         cv2.imwrite(img_name, frames) 
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
                 if k < int(app_config.delay):
