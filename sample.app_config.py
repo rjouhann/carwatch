@@ -20,9 +20,12 @@ debug = False # True/False
 # RTSP video stream
 video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
 
-# detection bad car limit
-limit = 200
+# detection car limits
+limit_good = 200
+limit_bad = 700
+# time to wait before resetting the detection loop
+delay = 700
 # detection car settings
 scaleFactor = 1.03
 minNeighbors = 4
-minSize = (130,130)
+minSize = (140,140)
