@@ -9,7 +9,7 @@ When a car is detected, **carwatch** will take a screenshot and save it into a J
 
 **Carwatch** also provides ability to create a weekly report and send it by email once a week with graph and screenshots attached in a zip file.
 
-![Example Report](./example_detection.jpg)
+![Example Report](./example_report.png)
 
 **Carwatch** is designed to capture a RTSP video stream and run on a Raspberry Pi.
 
