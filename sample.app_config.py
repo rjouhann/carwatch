@@ -21,11 +21,16 @@ debug = False # True/False
 video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
 
 # detection car limits
-limit_good = 200
-limit_bad = 700
+limit_detected = 20 # recommended below 20
+limit_good = 350 # this can be tweek recommended between 200-400
+limit_bad = 1200 # must be less than delay, recommended between 700-1500
+# when to take the screenshot 
+good_car_screenshot = 300 # must be less than delay
+bad_car_screenshot = 1 # recommended lowest as possible
 # time to wait before resetting the detection loop
-delay = 700
+delay = 1500 # must be less than delay
 # detection car settings
-scaleFactor = 1.03
-minNeighbors = 4
-minSize = (140,140)
+scaleFactor = 1.02
+minNeighbors = 5
+minSize = (160,160)
+
