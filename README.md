@@ -16,6 +16,8 @@ When a car is detected, **carwatch** will take a screenshot and save it into a J
 Installation
 ============
 
+Requirement min Python 3.
+
 OpenCV install on Ubuntu:
 ```
 sudo apt update
@@ -43,11 +45,11 @@ After you clone the git repository, rename the file ``sample.app_config.py`` to 
 You may also tune other detection settings which might depend on your camera.
 
 ```
-nohup python3 carwatch.py >> /home/pi/carwatch.log 2>&1 &
+cd /home/pi/carwatch
+nohup python3 carwatch.py >> /home/pi/carwatch/carwatch.log 2>&1 &
 ```
 
-Start at the boot:
+Start at the boot, add below to /etc/rc.local, then reboot:
 ```
-echo "python3 carwatch.py >> /home/pi/carwatch.log 2>&1 &" >> /etc/rc.local
-sudo reboot
+su - pi -c "cd /home/pi/carwatch;nohup python3.9 /home/pi/carwatch/carwatch.py >> /home/pi/carwatch/carwatch.log 2>&1 &"
 ```

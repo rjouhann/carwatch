@@ -19,6 +19,9 @@ record = False
 showvideo = False
 debug = False
 
+# Clear the buffer stack every time it reaches a certain capacity
+buffer = 100
+
 # RTSP video stream
 video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
 

@@ -159,6 +159,7 @@ def write(stack, cam, top: int) -> None:
             # Clear the buffer stack every time it reaches a certain capacity
             # Use the gc library to manually clean up memory garbage to prevent memory overflow
             if len(stack) >= top:
+                print('Exceeding capacity (' + str(len(stack)) + ')')
                 del stack[:]
                 gc.collect()
 
@@ -375,7 +376,7 @@ if __name__ == '__main__':
 
     # The parent process creates a buffer stack and passes it to each child process:
     q = Manager().list()
-    pw = Process(target=write, args=(q, video, 100))
+    pw = Process(target=write, args=(q, video, app_config.buffer))
     pr = Process(target=read, args=(q,))
     # Start the child process pw, write:
     pw.start()
