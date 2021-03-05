@@ -13,24 +13,24 @@ rtsp_channel = "/Streaming/Channels/101/Streaming/Channels/1"
 report_title = "Parking garage gate traffic"
 report_day = 0 # Monday, which day of the week the report is sent
 
-screenshots = True # True/False
-record = False # True/False
-debug = False # True/False
+# True/False
+screenshots = True
+record = False
+showvideo = False
+debug = False
 
 # RTSP video stream
 video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
 
 # detection car limits
 limit_detected = 20 # recommended below 20
-limit_good = 350 # this can be tweek recommended between 200-400
-limit_bad = 1200 # must be less than delay, recommended between 700-1500
+limit_good = 400 # this can be tweek recommended between 300-500
+limit_bad = 800 # this can be tweek recommended between 700-1200, at least 2x limit_good
 # when to take the screenshot 
-good_car_screenshot = 300 # must be less than delay
-bad_car_screenshot = 1 # recommended lowest as possible
+good_car_screenshot = 400 # must be less than delay
 # time to wait before resetting the detection loop
 delay = 1500 # must be less than delay
 # detection car settings
 scaleFactor = 1.02
 minNeighbors = 5
 minSize = (160,160)
-

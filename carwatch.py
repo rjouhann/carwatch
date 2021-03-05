@@ -217,7 +217,8 @@ def read(stack) -> None:
             # if there is a car and no good or bad cars have been detected
             if car == 1 and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 i += 1
-                # print('debug i = ' + str(i))
+                if app_config.debug:
+                    print('debug i = ' + str(i))
                 if i > 1 and i < int(app_config.limit_detected):
                     cv2.putText(frames, '...', position1, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
@@ -238,28 +239,41 @@ def read(stack) -> None:
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car (i = ' + str(i) +')')
                     file = open("tmp/good", "w")
                     file.close()
+                    # record into CSV
+                    file = open("data/cars.csv", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",good\n")
+                    file.close()
 
             # if no car on the frame but a car has been detected, not tagged as good or bad yet
             # This logic is to detect bad cars
             if car == 0 and os.path.isfile('tmp/unknown') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 j += 1
-                # print('\tdebug j = ' + str(j))
+                if app_config.debug:
+                    print('\tdebug j = ' + str(j))
                 if i >= 10 and i < int(app_config.limit_good):
                     cv2.putText(frames, 'CAR DETECTED', position1, font, 2, (255, 128, 0), 4, cv2.LINE_4)
                 # wait for some time before call the car gone and reset the loop
                 if j == int(app_config.limit_bad):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')')
+                    cv2.putText(frames, 'BAD CAR !', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
+                    if app_config.screenshots:
+                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_bad_car.jpg'
+                        cv2.imwrite(img_name, frames) 
                     file = open("tmp/bad", "w")
+                    file.close()
+                    # record into CSV
+                    file = open("data/cars.csv", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",bad\n")
                     file.close()
                         
             # GOOD car detected
             if os.path.isfile('tmp/good'):
                 k += 1
-                # print('\t\tdebug k = ' + str(k))
+                if app_config.debug:
+                    print('\t\tdebug k = ' + str(k))
                 if k < int(app_config.delay):
                     cv2.putText(frames, 'GOOD CAR', position2, font, 2, (0, 204, 0), 4, cv2.LINE_4)
                 if k == app_config.good_car_screenshot:
-                    # save images shots of key moments
                     if app_config.screenshots:
                         img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_good_car.jpg'
                         cv2.imwrite(img_name, frames) 
@@ -268,9 +282,6 @@ def read(stack) -> None:
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')')
                     os.remove("tmp/good")
                     os.remove("tmp/unknown")
-                    file = open("data/cars.csv", "a")
-                    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",good\n")
-                    file.close()
                     i = 0
                     j = 0
                     k = 0
@@ -278,29 +289,22 @@ def read(stack) -> None:
             # BAD car detected
             if os.path.isfile('tmp/bad'):
                 k += 1
-                # print('\t\tdebug k = ' + str(k))
+                if app_config.debug:
+                    print('\t\tdebug k = ' + str(k))
                 if k < int(app_config.delay):
                     cv2.putText(frames, 'BAD CAR !', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
-                if k == app_config.bad_car_screenshot:
-                    # save images shots of key moments
-                    if app_config.screenshots:
-                        img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_bad_car.jpg'
-                        cv2.imwrite(img_name, frames) 
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
                 if k == int(app_config.delay):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car left (reset loop k = ' + str(k) +')')
                     os.remove("tmp/bad")
                     os.remove("tmp/unknown")
-                    file = open("data/cars.csv", "a")
-                    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ",bad\n")
-                    file.close()
                     i = 0
                     j = 0
                     k = 0
 
-            # display frames in a window for debug
-            if app_config.debug:
-                cv2.imshow('debug', frames)
+            # display frames in a window
+            if app_config.showvideo:
+                cv2.imshow('stream', frames)
 
             # first day of the week, email report
             if datetime.date.today().weekday() == app_config.report_day and not os.path.isfile('tmp/mail'):
