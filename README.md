@@ -45,11 +45,11 @@ After you clone the git repository, rename the file ``sample.app_config.py`` to 
 You may also tune other detection settings which might depend on your camera.
 
 ```
-cd /home/pi/carwatch
-nohup python3 carwatch.py >> /home/pi/carwatch/carwatch.log 2>&1 &
+cd /home/user/carwatch
+nohup python3 carwatch.py >> /home/user/carwatch/carwatch.log 2>&1 &
 ```
 
-Start at the boot, add below to /etc/rc.local, then reboot:
+Start at the boot, add to the user's crontab, then reboot to test:
 ```
-su - pi -c "cd /home/pi/carwatch;nohup python3.9 /home/pi/carwatch/carwatch.py >> /home/pi/carwatch/carwatch.log 2>&1 &"
+@reboot cd /home/user/carwatch; nohup python3 /home/user/carwatch/carwatch.py >> /home/user/carwatch/carwatch.log 2>&1 &
 ```
