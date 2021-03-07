@@ -139,7 +139,7 @@ def write(stack, cam, top: int) -> None:
     """
     print('Process to write: %s' % os.getpid())
     file = open("carwatch.log", "a")
-    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": Process to write: %s" % os.getpid() + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": Process to write: %s" % os.getpid() + "\n")
     file.close()
     cap = cv2.VideoCapture(cam)
 
@@ -164,7 +164,7 @@ def write(stack, cam, top: int) -> None:
             if len(stack) >= top:
                 print('Buffer exceeding capacity (' + str(len(stack)) + ')')
                 file = open("carwatch.log", "a")
-                file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": Buffer exceeding capacity (" + str(len(stack)) + ")\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": Buffer exceeding capacity (" + str(len(stack)) + ")\n")
                 file.close()
                 del stack[:]
                 gc.collect()
@@ -182,7 +182,7 @@ def file_age(filepath):
 def read(stack) -> None:
     print('Process to read: %s' % os.getpid())
     file = open("carwatch.log", "a")
-    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": Process to read: %s" % os.getpid() + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": Process to read: %s" % os.getpid() + "\n")
     file.close()
     i = 0
     j = 0
@@ -412,8 +412,7 @@ if __name__ == '__main__':
         print(str(datetime.datetime.now().strftime("%x %X")) + ': video = ' + str(video))
 
     file = open("carwatch.log", "a")
-    file.write("----------------------------------------------------------\n")
-    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": start\n")
+    file.write("=========================================================\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(app_config.screenshots) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(app_config.record) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(app_config.showvideo) + "\n")
@@ -427,6 +426,8 @@ if __name__ == '__main__':
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": scaleFactor = " + str(app_config.scaleFactor) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minNeighbors = " + str(app_config.minNeighbors) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minSize = " + str(app_config.minSize) + "\n")
+    file.write("----------------------------------------------------------\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": start\n")
     file.close()
 
     # The parent process creates a buffer stack and passes it to each child process:
@@ -446,5 +447,5 @@ if __name__ == '__main__':
 
     file = open("carwatch.log", "a")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": end\n")
-    file.write("----------------------------------------------------------\n")
+    file.write("=========================================================\n")
     file.close()
