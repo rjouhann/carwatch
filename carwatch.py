@@ -138,6 +138,9 @@ def write(stack, cam, top: int) -> None:
     :return: None
     """
     print('Process to write: %s' % os.getpid())
+    file = open("carwatch.log", "a")
+    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": Process to write: %s" % os.getpid() + "\n")
+    file.close()
     cap = cv2.VideoCapture(cam)
 
     # record the stream before processing
@@ -159,7 +162,10 @@ def write(stack, cam, top: int) -> None:
             # Clear the buffer stack every time it reaches a certain capacity
             # Use the gc library to manually clean up memory garbage to prevent memory overflow
             if len(stack) >= top:
-                print('Exceeding capacity (' + str(len(stack)) + ')')
+                print('Buffer exceeding capacity (' + str(len(stack)) + ')')
+                file = open("carwatch.log", "a")
+                file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": Buffer exceeding capacity (" + str(len(stack)) + ")\n")
+                file.close()
                 del stack[:]
                 gc.collect()
 
@@ -175,6 +181,9 @@ def file_age(filepath):
 # read data in the buffer stack:
 def read(stack) -> None:
     print('Process to read: %s' % os.getpid())
+    file = open("carwatch.log", "a")
+    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": Process to read: %s" % os.getpid() + "\n")
+    file.close()
     i = 0
     j = 0
     k = 0
@@ -212,6 +221,9 @@ def read(stack) -> None:
             if car == 0 and os.path.isfile('tmp/something') and not os.path.isfile('tmp/unknown') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 if file_age('tmp/something') > 60:
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': incorrect detection, probably not a car (reset loop i = ' + str(i) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': incorrect detection, probably not a car (reset loop i = ' + str(i) +')\n')
+                    file.close()
                     os.remove("tmp/something")
                     i = 0
 
@@ -223,10 +235,16 @@ def read(stack) -> None:
                 if i > 1 and i < int(app_config.limit_detected):
                     cv2.putText(frames, '...', position1, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')\n')
+                    file.close()
                     file = open("tmp/something", "w")
                     file.close()
                 if i == (app_config.limit_detected):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')\n')
+                    file.close()
                     os.remove("tmp/something")
                     # save picture of the car detected
                     if app_config.screenshots:
@@ -238,6 +256,9 @@ def read(stack) -> None:
                     cv2.putText(frames, 'CAR DETECTED', position1, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
                 if i == int(app_config.limit_good):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car (i = ' + str(i) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': good car (i = ' + str(i) +')\n')
+                    file.close()
                     file = open("tmp/good", "w")
                     file.close()
                     # record into CSV
@@ -256,6 +277,9 @@ def read(stack) -> None:
                 # wait for some time before call the car gone and reset the loop
                 if j == int(app_config.limit_bad):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')\n')
+                    file.close()
                     cv2.putText(frames, 'BAD CAR !', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
                     if app_config.screenshots:
                         img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_bad_car.jpg'
@@ -281,6 +305,9 @@ def read(stack) -> None:
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
                 if k == int(app_config.delay):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')\n')
+                    file.close()
                     os.remove("tmp/good")
                     os.remove("tmp/unknown")
                     i = 0
@@ -297,6 +324,9 @@ def read(stack) -> None:
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
                 if k == int(app_config.delay):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car left (reset loop k = ' + str(k) +')')
+                    file = open("carwatch.log", "a")
+                    file.write(str(datetime.datetime.now().strftime("%x %X")) + ': bad car left (reset loop k = ' + str(k) +')\n')
+                    file.close()
                     os.remove("tmp/bad")
                     os.remove("tmp/unknown")
                     i = 0
@@ -310,6 +340,9 @@ def read(stack) -> None:
             # first day of the week, email report
             if datetime.date.today().weekday() == app_config.report_day and not os.path.isfile('tmp/mail'):
                 print("First day of the week, Build the report")
+                file = open("carwatch.log", "a")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ': First day of the week, Build the report\n')
+                file.close()
                 good, bad, zip_name = build_report()
                 print("Now, emailing it.")
                 text = 'Email only available in HTML format.'
@@ -345,8 +378,6 @@ def read(stack) -> None:
 
 
 if __name__ == '__main__':
-    print(str(datetime.datetime.now().strftime("%x %X")) + ': start')
-
     if not os.path.exists('tmp'):
         os.makedirs('tmp')
     if not os.path.exists('data'):
@@ -370,9 +401,33 @@ if __name__ == '__main__':
         os.remove("tmp/mail")
     if os.path.isfile('video/debug.avi'):
         os.remove("video/debug.avi")
+    
+    # initalize cars.csv file
+    if not os.path.exists('data/cars.csv'):
+         file = open("data/cars.csv", "w")
+         file.write("DAY,HOUR,CARS")
 
     video = app_config.video
-    print(str(datetime.datetime.now().strftime("%x %X")) + ': video = ' + str(video))
+    if app_config.debug:
+        print(str(datetime.datetime.now().strftime("%x %X")) + ': video = ' + str(video))
+
+    file = open("carwatch.log", "a")
+    file.write("----------------------------------------------------------\n")
+    file.write(str(datetime.datetime.now().strftime("%x,%X")) + ": start\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(app_config.screenshots) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(app_config.record) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(app_config.showvideo) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": debug = " + str(app_config.debug) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer = " + str(app_config.buffer) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_detected = " + str(app_config.limit_detected) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_good = " + str(app_config.limit_good) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_bad = " + str(app_config.limit_bad) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": good_car_screenshot = " + str(app_config.good_car_screenshot) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": delay = " + str(app_config.delay) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": scaleFactor = " + str(app_config.scaleFactor) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minNeighbors = " + str(app_config.minNeighbors) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minSize = " + str(app_config.minSize) + "\n")
+    file.close()
 
     # The parent process creates a buffer stack and passes it to each child process:
     q = Manager().list()
@@ -389,4 +444,7 @@ if __name__ == '__main__':
     # pw Process is an infinite loop, can not wait for its end, can only be forced to terminate:
     pw.terminate()
 
-    print(str(datetime.datetime.now().strftime("%x %X")) + ': end')
+    file = open("carwatch.log", "a")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": end\n")
+    file.write("----------------------------------------------------------\n")
+    file.close()

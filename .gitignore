@@ -4,6 +4,8 @@ tmp
 media
 video
 img
+archive
+carwatch.log
 *.bkp
 *.bak
 __pycache__
