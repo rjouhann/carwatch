@@ -46,7 +46,7 @@ You may also tune other detection settings which might depend on your camera.
 
 ```
 cd /home/user/carwatch
-nohup python3 carwatch.py 2>&1 &> /home/user/carwatch/carwatch.log &
+nohup python3 carwatch.py 2>&1 &> carwatch.log &
 ```
 
 Start at the boot, add to the user's crontab, then reboot to test:
