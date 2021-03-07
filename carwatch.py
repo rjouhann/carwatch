@@ -388,6 +388,8 @@ if __name__ == '__main__':
         os.makedirs('img')
     if not os.path.exists('archive'):
         os.makedirs('archive')
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
 
     if os.path.isfile('tmp/something'):
         os.remove("tmp/something")
@@ -406,6 +408,7 @@ if __name__ == '__main__':
     if not os.path.exists('data/cars.csv'):
          file = open("data/cars.csv", "w")
          file.write("DAY,HOUR,CARS")
+         file.close()
 
     video = app_config.video
     if app_config.debug:

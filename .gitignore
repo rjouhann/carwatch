@@ -5,7 +5,8 @@ media
 video
 img
 archive
-carwatch.log
+logs
+*.log
 *.bkp
 *.bak
 __pycache__
