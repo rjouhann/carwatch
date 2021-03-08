@@ -21,14 +21,15 @@ import pandas as pd
 from matplotlib import pyplot
 import zipfile
 # import user config
-import app_config
+import config_app
+import config_detection
 
 # send report by email
 def send_email_notification(text, html, image, zip_name, subject, receiver_email):
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
-    message["From"] = app_config.gmail_user 
-    message["To"] = app_config.receiver_email
+    message["From"] = config_app.gmail_user 
+    message["To"] = config_app.receiver_email
 
     # Turn these into plain/html MIMEText objects
     part1 = MIMEText(text, "plain")
@@ -45,7 +46,7 @@ def send_email_notification(text, html, image, zip_name, subject, receiver_email
     print('Includes: ' + str(filename1))
 
     # Add zip file
-    if app_config.screenshots:
+    if config_detection.screenshots:
         filename2 = os.path.basename(zip_name)
         part = MIMEBase("application", "octet-stream")
         part.set_payload(open(zip_name, "rb").read())
@@ -59,13 +60,13 @@ def send_email_notification(text, html, image, zip_name, subject, receiver_email
     message.attach(part1)
     message.attach(part2)
 
-    if app_config.debug:
-        print("SMTP server used: " + str(app_config.smtp_server))
-    server = smtplib.SMTP(app_config.smtp_server, app_config.smtp_port)
+    if config_detection.debug:
+        print("SMTP server used: " + str(config_app.smtp_server))
+    server = smtplib.SMTP(config_app.smtp_server, config_app.smtp_port)
     server.ehlo()
     server.starttls()
-    server.login(app_config.gmail_user, app_config.gmail_password)
-    result_email = server.sendmail(app_config.gmail_user, app_config.receiver_email.split(','), message.as_string())
+    server.login(config_app.gmail_user, config_app.gmail_password)
+    result_email = server.sendmail(config_app.gmail_user, config_app.receiver_email.split(','), message.as_string())
     server.quit()
 
 def zipdir(path, ziph):
@@ -77,7 +78,7 @@ def zipdir(path, ziph):
 # build weekly report
 def build_report():
     data = pd.read_csv('data/cars.csv', usecols= ['DAY','CARS'])
-    if app_config.debug:
+    if config_detection.debug:
         print(data)
     # filter the data
     good = data[data['CARS'] == 'good']
@@ -85,7 +86,7 @@ def build_report():
     good=good.replace(to_replace="good",value=int(1))
     bad=bad.replace(to_replace="bad",value=int(1))
 
-    if app_config.debug:
+    if config_detection.debug:
         print('\nGood cars')
         print(good)
         print('\nBad cars')
@@ -94,7 +95,7 @@ def build_report():
     good = good.groupby(['DAY'])['CARS'].sum()
     bad = bad.groupby(['DAY'])['CARS'].sum()
 
-    if app_config.debug:
+    if config_detection.debug:
         print('\nGood cars')
         print(good)
         print('\nBad cars')
@@ -110,13 +111,13 @@ def build_report():
     pyplot.legend()
     pyplot.tight_layout()
     pyplot.subplots_adjust(top=0.88)
-    pyplot.suptitle(app_config.report_title, fontsize=20)
+    pyplot.suptitle(config_app.report_title, fontsize=20)
     pyplot.savefig('tmp/carwatch-report.jpg')
-    if app_config.debug:
+    if config_detection.debug:
         pyplot.show()
 
-    if app_config.screenshots:
-        print('\nArchive screenshots')
+    if config_detection.screenshots:
+        print(str(datetime.datetime.now().strftime("%x %X")) + ": zip screenshots")
         # zip all files available
         zip_name = 'archive/' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + '_screenshots.zip'
         zipf = zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED)
@@ -137,14 +138,14 @@ def write(stack, cam, top: int) -> None:
          :param top: buffer stack capacity
     :return: None
     """
-    print('Process to write: %s' % os.getpid())
+    print(str(datetime.datetime.now().strftime("%x %X")) + ": Process to write: %s" % os.getpid())
     file = open("carwatch.log", "a")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": Process to write: %s" % os.getpid() + "\n")
     file.close()
     cap = cv2.VideoCapture(cam)
 
     # record the stream before processing
-    if app_config.record:
+    if config_detection.record:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) + 0.5)
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
         size = (width, height)
@@ -156,22 +157,22 @@ def write(stack, cam, top: int) -> None:
         if _:
             stack.append(img)
             # save video in a file
-            if app_config.record:
+            if config_detection.record:
                 out1.write(img)
 
             # Clear the buffer stack every time it reaches a certain capacity
             # Use the gc library to manually clean up memory garbage to prevent memory overflow
             if len(stack) >= top:
-                print('Buffer exceeding capacity (' + str(len(stack)) + ')')
+                print(str(datetime.datetime.now().strftime("%x %X")) + ": buffer exceeding capacity (" + str(len(stack)) + ")")
                 file = open("carwatch.log", "a")
-                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": Buffer exceeding capacity (" + str(len(stack)) + ")\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer exceeding capacity (" + str(len(stack)) + ")\n")
                 file.close()
                 del stack[:]
                 gc.collect()
 
     # De-allocate any associated memory usage
     cap.release()
-    if app_config.record:
+    if config_detection.record:
         out1.release()
     cv2.destroyAllWindows()
 
@@ -180,7 +181,7 @@ def file_age(filepath):
 
 # read data in the buffer stack:
 def read(stack) -> None:
-    print('Process to read: %s' % os.getpid())
+    print(str(datetime.datetime.now().strftime("%x %X")) + ": Process to read: %s" % os.getpid())
     file = open("carwatch.log", "a")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": Process to read: %s" % os.getpid() + "\n")
     file.close()
@@ -210,7 +211,7 @@ def read(stack) -> None:
             gray = cv2.cvtColor(frames, cv2.COLOR_BGR2GRAY)
 
             # detects cars of different sizes in the input image
-            cars = car_cascade.detectMultiScale(gray, scaleFactor=app_config.scaleFactor, minNeighbors=app_config.minNeighbors, minSize=app_config.minSize)
+            cars = car_cascade.detectMultiScale(gray, scaleFactor=config_detection.scaleFactor, minNeighbors=config_detection.minNeighbors, minSize=config_detection.minSize)
 
             # draw a rectangle in each cars
             for (x,y,w,h) in cars:
@@ -230,9 +231,9 @@ def read(stack) -> None:
             # if there is a car and no good or bad cars have been detected
             if car == 1 and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 i += 1
-                if app_config.debug:
+                if config_detection.debug:
                     print('debug i = ' + str(i))
-                if i > 1 and i < int(app_config.limit_detected):
+                if i > 1 and i < int(config_detection.limit_detected):
                     cv2.putText(frames, '...', position1, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': something detected (i = ' + str(i) +')')
                     file = open("carwatch.log", "a")
@@ -240,21 +241,21 @@ def read(stack) -> None:
                     file.close()
                     file = open("tmp/something", "w")
                     file.close()
-                if i == (app_config.limit_detected):
+                if i == (config_detection.limit_detected):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')')
                     file = open("carwatch.log", "a")
                     file.write(str(datetime.datetime.now().strftime("%x %X")) + ': car detected (i = ' + str(i) +')\n')
                     file.close()
                     os.remove("tmp/something")
                     # save picture of the car detected
-                    if app_config.screenshots:
+                    if config_detection.screenshots:
                         img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_detected.jpg'
                         cv2.imwrite(img_name, frames) 
                     file = open("tmp/unknown", "w")
                     file.close()
-                if i >= 10 and i < int(app_config.limit_good):
+                if i >= 10 and i < int(config_detection.limit_good):
                     cv2.putText(frames, 'CAR DETECTED', position1, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
-                if i == int(app_config.limit_good):
+                if i == int(config_detection.limit_good):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car (i = ' + str(i) +')')
                     file = open("carwatch.log", "a")
                     file.write(str(datetime.datetime.now().strftime("%x %X")) + ': good car (i = ' + str(i) +')\n')
@@ -270,18 +271,18 @@ def read(stack) -> None:
             # This logic is to detect bad cars
             if car == 0 and os.path.isfile('tmp/unknown') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 j += 1
-                if app_config.debug:
+                if config_detection.debug:
                     print('\tdebug j = ' + str(j))
-                if i >= 10 and i < int(app_config.limit_good):
+                if i >= 10 and i < int(config_detection.limit_good):
                     cv2.putText(frames, 'CAR DETECTED', position1, font, 2, (255, 128, 0), 4, cv2.LINE_4)
                 # wait for some time before call the car gone and reset the loop
-                if j == int(app_config.limit_bad):
+                if j == int(config_detection.limit_bad):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')')
                     file = open("carwatch.log", "a")
                     file.write(str(datetime.datetime.now().strftime("%x %X")) + ': bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')\n')
                     file.close()
-                    cv2.putText(frames, 'BAD CAR !', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
-                    if app_config.screenshots:
+                    cv2.putText(frames, 'BAD CAR (' + str(i) +')', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
+                    if config_detection.screenshots:
                         img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_bad_car.jpg'
                         cv2.imwrite(img_name, frames) 
                     file = open("tmp/bad", "w")
@@ -294,16 +295,16 @@ def read(stack) -> None:
             # GOOD car detected
             if os.path.isfile('tmp/good'):
                 k += 1
-                if app_config.debug:
+                if config_detection.debug:
                     print('\t\tdebug k = ' + str(k))
-                if k < int(app_config.delay):
+                if k < int(config_detection.delay):
                     cv2.putText(frames, 'GOOD CAR', position2, font, 2, (0, 204, 0), 4, cv2.LINE_4)
-                if k == app_config.good_car_screenshot:
-                    if app_config.screenshots:
+                if k == config_detection.good_car_screenshot:
+                    if config_detection.screenshots:
                         img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_good_car.jpg'
                         cv2.imwrite(img_name, frames) 
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
-                if k == int(app_config.delay):
+                if k == int(config_detection.delay):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')')
                     file = open("carwatch.log", "a")
                     file.write(str(datetime.datetime.now().strftime("%x %X")) + ': good car left (reset loop k = ' + str(k) +')\n')
@@ -317,12 +318,12 @@ def read(stack) -> None:
             # BAD car detected
             if os.path.isfile('tmp/bad'):
                 k += 1
-                if app_config.debug:
+                if config_detection.debug:
                     print('\t\tdebug k = ' + str(k))
-                if k < int(app_config.delay):
+                if k < int(config_detection.delay):
                     cv2.putText(frames, 'BAD CAR !', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
-                if k == int(app_config.delay):
+                if k == int(config_detection.delay):
                     print(str(datetime.datetime.now().strftime("%x %X")) + ': bad car left (reset loop k = ' + str(k) +')')
                     file = open("carwatch.log", "a")
                     file.write(str(datetime.datetime.now().strftime("%x %X")) + ': bad car left (reset loop k = ' + str(k) +')\n')
@@ -334,17 +335,17 @@ def read(stack) -> None:
                     k = 0
 
             # display frames in a window
-            if app_config.showvideo:
+            if config_detection.showvideo:
                 cv2.imshow('stream', frames)
 
             # first day of the week, email report
-            if datetime.date.today().weekday() == app_config.report_day and not os.path.isfile('tmp/mail'):
-                print("First day of the week, Build the report")
+            if datetime.date.today().weekday() == config_app.report_day and not os.path.isfile('tmp/mail'):
+                print(str(datetime.datetime.now().strftime("%x %X")) + ": First day of the week, build the report")
                 file = open("carwatch.log", "a")
-                file.write(str(datetime.datetime.now().strftime("%x %X")) + ': First day of the week, Build the report\n')
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ': First day of the week, build the report\n')
                 file.close()
                 good, bad, zip_name = build_report()
-                print("Now, emailing it.")
+                print(str(datetime.datetime.now().strftime("%x %X")) + ": Now, emailing it.")
                 text = 'Email only available in HTML format.'
                 html = """\
                 <html>
@@ -357,13 +358,42 @@ def read(stack) -> None:
                 </body>
                 </html>
                 """
-                subject = '[carwatch] ' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + ' ' + app_config.report_title
-                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', zip_name, subject, app_config.receiver_email)
+                subject = '[carwatch] ' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + ' ' + config_app.report_title
+                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', zip_name, subject, config_app.receiver_email)
                 file = open("tmp/mail", "w")
                 file.close()
 
-            if datetime.date.today().weekday() != app_config.report_day and os.path.isfile('tmp/mail'):
-                if app_config.debug:
+                file = open("carwatch.log", "a")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ': rotate logs\n')
+                file.close()
+                print(str(datetime.datetime.now().strftime("%x %X")) + ": rotate logs")
+                # zip all files available
+                zip_name = 'logs/' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + '_carwatch_logs.zip'
+                zipfile.ZipFile(zip_name, 'w').write('carwatch.log')
+                # delete old logs
+                os.remove("carwatch.log")
+                # re-create new log file
+                file = open("carwatch.log", "a")
+                file.write("=========================================================\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(config_detection.screenshots) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(config_detection.record) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(config_detection.showvideo) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": debug = " + str(config_detection.debug) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer = " + str(config_detection.buffer) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_detected = " + str(config_detection.limit_detected) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_good = " + str(config_detection.limit_good) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_bad = " + str(config_detection.limit_bad) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": good_car_screenshot = " + str(config_detection.good_car_screenshot) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": delay = " + str(config_detection.delay) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": scaleFactor = " + str(config_detection.scaleFactor) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minNeighbors = " + str(config_detection.minNeighbors) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minSize = " + str(config_detection.minSize) + "\n")
+                file.write("----------------------------------------------------------\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": log rotation\n")
+                file.close()
+
+            if datetime.date.today().weekday() != config_app.report_day and os.path.isfile('tmp/mail'):
+                if config_detection.debug:
                     print('debug delete tmp/mail')
                 os.remove("tmp/mail")
 
@@ -372,7 +402,7 @@ def read(stack) -> None:
                 break
 
     # De-allocate any associated memory usage
-    if app_config.record:
+    if config_detection.record:
         out2.release()
     cv2.destroyAllWindows()
 
@@ -410,32 +440,32 @@ if __name__ == '__main__':
          file.write("DAY,HOUR,CARS")
          file.close()
 
-    video = app_config.video
-    if app_config.debug:
+    video = config_app.video
+    if config_detection.debug:
         print(str(datetime.datetime.now().strftime("%x %X")) + ': video = ' + str(video))
 
     file = open("carwatch.log", "a")
     file.write("=========================================================\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(app_config.screenshots) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(app_config.record) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(app_config.showvideo) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": debug = " + str(app_config.debug) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer = " + str(app_config.buffer) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_detected = " + str(app_config.limit_detected) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_good = " + str(app_config.limit_good) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_bad = " + str(app_config.limit_bad) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": good_car_screenshot = " + str(app_config.good_car_screenshot) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": delay = " + str(app_config.delay) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": scaleFactor = " + str(app_config.scaleFactor) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minNeighbors = " + str(app_config.minNeighbors) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minSize = " + str(app_config.minSize) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(config_detection.screenshots) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(config_detection.record) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(config_detection.showvideo) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": debug = " + str(config_detection.debug) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer = " + str(config_detection.buffer) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_detected = " + str(config_detection.limit_detected) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_good = " + str(config_detection.limit_good) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_bad = " + str(config_detection.limit_bad) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": good_car_screenshot = " + str(config_detection.good_car_screenshot) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": delay = " + str(config_detection.delay) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": scaleFactor = " + str(config_detection.scaleFactor) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minNeighbors = " + str(config_detection.minNeighbors) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": minSize = " + str(config_detection.minSize) + "\n")
     file.write("----------------------------------------------------------\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": start\n")
     file.close()
 
     # The parent process creates a buffer stack and passes it to each child process:
     q = Manager().list()
-    pw = Process(target=write, args=(q, video, app_config.buffer))
+    pw = Process(target=write, args=(q, video, config_detection.buffer))
     pr = Process(target=read, args=(q,))
     # Start the child process pw, write:
     pw.start()

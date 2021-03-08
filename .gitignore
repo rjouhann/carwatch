@@ -1,4 +1,5 @@
 app_config.py
+config_app.py
 data
 tmp
 media
@@ -12,3 +13,4 @@ logs
 __pycache__
 .DS_Store
 backlog
+debug.mp4

@@ -41,8 +41,8 @@ pip3 install matplotlib
 pip3 install pandas
 ```
 
-After you clone the git repository, rename the file ``sample.app_config.py`` to ``app_config.py`` and edit the mail and RTSP configuration.
-You may also tune other detection settings which might depend on your camera.
+After you clone the git repository, rename the file ``config_app.sample.py`` to ``config_app.py`` and edit the mail and RTSP configuration.
+You may also tune other detection settings in ``config_detection.py`` which might depend on your camera.
 
 ```
 cd /home/user/carwatch
@@ -53,3 +53,9 @@ Start at the boot, add to the user's crontab, then reboot to test:
 ```
 @reboot cd /home/user/carwatch; nohup python3 carwatch.py 2>&1 &> /home/user/carwatch/carwatch.log &
 ```
+
+Service Monitor script to make sure the script is restarted in case it dies:
+```
+*/5 * * * * /home/user/carwatch/service_monitor.sh >> /home/user/carwatch/carwatch.log
+```
+

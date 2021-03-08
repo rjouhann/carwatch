@@ -4,13 +4,23 @@
 echo -e "\nstop carwatch..."
 killall python3 # when running on ubuntu
 killall Python # when running on mac
-echo -e "\nbackup log file..."
-cp carwatch.log logs/$(date +"%Y-%m-%d")_carwatch.log
-echo -e "\nwait 5 secs..."
-sleep 5
+secs=5
+while [ $secs -gt 0 ]; do
+    echo -ne "$secs\033[0K\r"
+    sleep 1
+    : $((secs--))
+done
+echo -e "\ndelete python cache folder..."
+rm -rf __pycache__
 echo -e "\ncarwatch starting..."
 nohup python3 carwatch.py 2>&1 &> carwatch.log &
-echo -e "\nwait 5 secs..."
-sleep 5
+secs=5
+while [ $secs -gt 0 ]; do
+    echo -ne "$secs\033[0K\r"
+    sleep 1
+    : $((secs--))
+done
+echo -e "\nprocesses..."
+ps -ef | grep carwatch | grep -v grep
 echo -e "\nlogs..."
 tail -20 carwatch.log
