@@ -11,7 +11,7 @@ rtsp_port = "554"
 rtsp_channel = "/Streaming/Channels/101/Streaming/Channels/1"
 
 report_title = "Parking garage gate traffic"
-report_day = 1 # Sunday 0, Monday 1, Tuesday 2, ... which day of the week the report is sent
+report_day = 0 # Monday is 0 and Sunday is 6 ... which day of the week the report is sent
 
 # RTSP video stream
 video = "rtsp://" + rtsp_user + ":" + rtsp_password + "@" + rtsp_ip + ":" + rtsp_port + rtsp_channel
