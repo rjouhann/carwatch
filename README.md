@@ -51,11 +51,11 @@ nohup python3 carwatch.py 2>&1 &> carwatch.log &
 
 Start at the boot, add to the user's crontab, then reboot to test:
 ```
-@reboot cd /home/user/carwatch; nohup python3 carwatch.py 2>&1 &> /home/user/carwatch/carwatch.log &
+@reboot cd /home/user/carwatch; nohup python3 carwatch.py 2>&1 &
 ```
 
 Service Monitor script to make sure the script is restarted in case it dies:
 ```
-*/5 * * * * /home/user/carwatch/service_monitor.sh >> /home/user/carwatch/carwatch.log
+*/5 * * * * cd /home/user/carwatch ; ./service_monitor.sh >> carwatch.log
 ```
 
