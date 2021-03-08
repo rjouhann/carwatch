@@ -6,7 +6,7 @@ from multiprocessing import Process, Manager
 import datetime
 from datetime import timedelta
 import os, time
-import os.path
+#import os.path
 from os import path
 import glob
 # used to send email
@@ -20,6 +20,9 @@ from email import encoders
 import pandas as pd
 from matplotlib import pyplot
 import zipfile
+# used for prog arguments
+import argparse
+import sys
 # import user config
 import config_app
 import config_detection
@@ -64,6 +67,20 @@ def zipdir(path, ziph):
     for root, dirs, files in os.walk(path):
         for file in files:
             ziph.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), os.path.join(path, '..')))
+
+# archive images
+def archive_img():
+    print(str(datetime.datetime.now().strftime("%x %X")) + ": zip screenshots")
+    # zip all files available
+    zip_name = 'archive/' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + '_screenshots.zip'
+    zipf = zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED)
+    zipdir('img/', zipf)
+    zipf.close()
+    # delete screenshots zipped
+    files = glob.glob('img/*')
+    for f in files:
+        os.remove(f)
+    return(zip_name)
 
 # build weekly report
 def build_report():
@@ -124,6 +141,7 @@ def build_report():
     pyplot.subplots_adjust(top=0.88)
     pyplot.suptitle(config_app.report_title, fontsize=15)
     pyplot.savefig('tmp/carwatch-report.jpg')
+    print("check new tmp/carwatch-report.jpg\n")
     if config_detection.debug:
         pyplot.show()
     pyplot.close(fig)
@@ -137,23 +155,12 @@ def build_report():
     pyplot.ylabel("")
     pyplot.suptitle("Total Good vs Bad cars from last 7 days", fontsize=15)
     pyplot.savefig('tmp/carwatch-report-total-7days.jpg')
+    print("check new tmp/carwatch-report-total-7days.jpg\n")
     if config_detection.debug:
         pyplot.show()
     pyplot.close(fig)
 
-    if config_detection.screenshots:
-        print(str(datetime.datetime.now().strftime("%x %X")) + ": zip screenshots")
-        # zip all files available
-        zip_name = 'archive/' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + '_screenshots.zip'
-        zipf = zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED)
-        zipdir('img/', zipf)
-        zipf.close()
-        # delete screenshots zipped
-        files = glob.glob('img/*')
-        for f in files:
-            os.remove(f)
-
-    return(good, bad, zip_name)
+    return(good, bad)
 
 # write data to the shared buffer stack:
 def write(stack, cam, top: int) -> None:
@@ -369,7 +376,9 @@ def read(stack) -> None:
                 file = open("carwatch.log", "a")
                 file.write(str(datetime.datetime.now().strftime("%x %X")) + ': First day of the week, build the report\n')
                 file.close()
-                good, bad, zip_name = build_report()
+                good, bad = build_report()
+                if config_detection.screenshots:
+                    zip_name = archive_img()
                 print(str(datetime.datetime.now().strftime("%x %X")) + ": Now, emailing it.")
                 text = 'Email only available in HTML format.'
                 html = """\
@@ -434,6 +443,19 @@ def read(stack) -> None:
 
 
 if __name__ == '__main__':
+    # Initiate the parser
+    parser = argparse.ArgumentParser(description='Check if cars are waiting long enough at the parking garage gate.')
+    parser.add_argument("-R","--report", help="generate report on demand", action="store_true")
+
+    # Read arguments from the command line
+    args = parser.parse_args()
+
+    # Check for --report or -R
+    if args.report:
+        print("Generate report")
+        good, bad = build_report()
+        sys.exit(1)
+
     if not os.path.exists('tmp'):
         os.makedirs('tmp')
     if not os.path.exists('data'):
