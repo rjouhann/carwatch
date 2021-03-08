@@ -25,7 +25,7 @@ import config_app
 import config_detection
 
 # send report by email
-def send_email_notification(text, html, image, zip_name, subject, receiver_email):
+def send_email_notification(text, html, image1, image2, subject, receiver_email):
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
     message["From"] = config_app.gmail_user 
@@ -35,25 +35,15 @@ def send_email_notification(text, html, image, zip_name, subject, receiver_email
     part1 = MIMEText(text, "plain")
     part2 = MIMEText(html, "html")
 
-    fp = open(image, 'rb')
-    msgImage = MIMEImage(fp.read())
-    fp.close()
 
-    # Add image report
-    filename1 = os.path.basename(image)
-    msgImage.add_header('Content-ID', '<image1>')
-    message.attach(msgImage)
-    print('Includes: ' + str(filename1))
-
-    # Add zip file
-    if config_detection.screenshots:
-        filename2 = os.path.basename(zip_name)
-        part = MIMEBase("application", "octet-stream")
-        part.set_payload(open(zip_name, "rb").read())
-        encoders.encode_base64(part)
-        part.add_header("Content-Disposition", "attachment; filename=\"%s\"" % (filename2))
-        message.attach(part)
-        print('Includes: ' + str(filename2))
+    for filename in image1, image2:
+        fp = open(filename, 'rb')
+        msg_img = MIMEImage(fp.read())
+        fp.close()
+        msg_img.add_header('Content-ID', '<{}>'.format(filename))
+        msg_img.add_header('Content-Disposition', 'inline', filename=filename)
+        message.attach(msg_img)
+        print(str(datetime.datetime.now().strftime("%x %X")) + ": attach " + str(filename))
 
     # Add HTML/plain-text parts to MIMEMultipart message
     # The email client will try to render the last part first
@@ -101,20 +91,55 @@ def build_report():
         print('\nBad cars')
         print(bad)
 
-    good.plot(color="darkgreen",label="good cars")
-    bad.plot(color="darkred",label="bad cars")
-    pyplot.xticks(rotation=45, ha='right')
+    g = []
+    for d1, c1 in good.items():
+        g.append([d1,c1])
+
+    b = []
+    for d2, c2 in bad.items():
+        b.append([d2,c2])
+
+    gdf=pd.DataFrame(g, columns =['day', 'good']) 
+    bdf=pd.DataFrame(b, columns =['day', 'bad']) 
+    df=pd.merge(gdf, bdf, how='left', left_on='day', right_on='day')
+    df['good'] = df['good'].fillna(0).astype(int)
+    df['bad'] = df['bad'].fillna(0).astype(int)
+    df = df.set_index(pd.DatetimeIndex(df['day']))
+    df.index = df.index.strftime('%B %d, %Y')
+    del df['day']
+    print(df)
+
+    fig = pyplot.figure() # Create matplotlib figure
+    ax = fig.add_subplot(111) # Create matplotlib axes
+    df.good.plot(kind='bar', color='darkgreen', ax=ax, width=0.15, position=1, label="good cars")
+    df.bad.plot(kind='bar', color='darkred', ax=ax, width=0.15, position=0, label="bad cars")
+
+    pyplot.xticks(rotation=45, ha='right', size=8)
     pyplot.style.use('seaborn-pastel') #sets the size of the charts
     pyplot.style.use('seaborn-talk')
-    pyplot.xlabel('Days', fontsize = 15, weight = 'bold')
     pyplot.ylabel('Numbers', fontsize = 15, weight = 'bold')
+    pyplot.xlabel(' ', fontsize = 1)
     pyplot.legend()
     pyplot.tight_layout()
     pyplot.subplots_adjust(top=0.88)
-    pyplot.suptitle(config_app.report_title, fontsize=20)
+    pyplot.suptitle(config_app.report_title, fontsize=15)
     pyplot.savefig('tmp/carwatch-report.jpg')
     if config_detection.debug:
         pyplot.show()
+    pyplot.close(fig)
+
+    # Pie purcentage bad/good
+    fig = pyplot.figure() # Create matplotlib figure
+    print(df.tail(7).sum(axis=0))
+    labels=['good cars','bad cars']
+    colors=['darkgreen','darkred']
+    df.sum(axis=0).plot(kind='pie', autopct='%1.1f%%', labels=labels, colors=colors, figsize=(5,5))
+    pyplot.ylabel("")
+    pyplot.suptitle("Total Good vs Bad cars from last 7 days", fontsize=15)
+    pyplot.savefig('tmp/carwatch-report-total-7days.jpg')
+    if config_detection.debug:
+        pyplot.show()
+    pyplot.close(fig)
 
     if config_detection.screenshots:
         print(str(datetime.datetime.now().strftime("%x %X")) + ": zip screenshots")
@@ -145,7 +170,7 @@ def write(stack, cam, top: int) -> None:
     cap = cv2.VideoCapture(cam)
 
     # record the stream before processing
-    if config_detection.record:
+    if config_detection.record_video:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) + 0.5)
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
         size = (width, height)
@@ -157,7 +182,7 @@ def write(stack, cam, top: int) -> None:
         if _:
             stack.append(img)
             # save video in a file
-            if config_detection.record:
+            if config_detection.record_video:
                 out1.write(img)
 
             # Clear the buffer stack every time it reaches a certain capacity
@@ -172,7 +197,7 @@ def write(stack, cam, top: int) -> None:
 
     # De-allocate any associated memory usage
     cap.release()
-    if config_detection.record:
+    if config_detection.record_video:
         out1.release()
     cv2.destroyAllWindows()
 
@@ -335,7 +360,7 @@ def read(stack) -> None:
                     k = 0
 
             # display frames in a window
-            if config_detection.showvideo:
+            if config_detection.show_video:
                 cv2.imshow('stream', frames)
 
             # first day of the week, email report
@@ -354,12 +379,13 @@ def read(stack) -> None:
                 <p><strong>Good cars</strong>: cars waiting at the gate long enough so the gate closes.</p>
                 <p><strong>Bad cars</strong>: cars NOT waiting at the gate long enough.</p>
                 <p></p>
-                <p><img src="cid:image1" alt="Carwatch Report"></p>
+                <p><img src="cid:tmp/carwatch-report.jpg" alt="Carwatch Report"></p>
+                <p><img src="cid:tmp/carwatch-report-total-7days.jpg" alt="Carwatch Report Total last 7 days"></p>
                 </body>
                 </html>
                 """
                 subject = '[carwatch] ' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + ' ' + config_app.report_title
-                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', zip_name, subject, config_app.receiver_email)
+                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', 'tmp/carwatch-report-total-7days.jpg', subject, config_app.receiver_email)
                 file = open("tmp/mail", "w")
                 file.close()
 
@@ -376,8 +402,8 @@ def read(stack) -> None:
                 file = open("carwatch.log", "a")
                 file.write("=========================================================\n")
                 file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(config_detection.screenshots) + "\n")
-                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(config_detection.record) + "\n")
-                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(config_detection.showvideo) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record_video = " + str(config_detection.record_video) + "\n")
+                file.write(str(datetime.datetime.now().strftime("%x %X")) + ": show_video = " + str(config_detection.show_video) + "\n")
                 file.write(str(datetime.datetime.now().strftime("%x %X")) + ": debug = " + str(config_detection.debug) + "\n")
                 file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer = " + str(config_detection.buffer) + "\n")
                 file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_detected = " + str(config_detection.limit_detected) + "\n")
@@ -447,8 +473,8 @@ if __name__ == '__main__':
     file = open("carwatch.log", "a")
     file.write("=========================================================\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": screenshots = " + str(config_detection.screenshots) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record = " + str(config_detection.record) + "\n")
-    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": showvideo = " + str(config_detection.showvideo) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": record_video = " + str(config_detection.record_video) + "\n")
+    file.write(str(datetime.datetime.now().strftime("%x %X")) + ": show_video = " + str(config_detection.show_video) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": debug = " + str(config_detection.debug) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": buffer = " + str(config_detection.buffer) + "\n")
     file.write(str(datetime.datetime.now().strftime("%x %X")) + ": limit_detected = " + str(config_detection.limit_detected) + "\n")

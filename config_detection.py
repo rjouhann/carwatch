@@ -1,10 +1,10 @@
 # Clear the buffer stack every time it reaches a certain capacity
-buffer = 100
+buffer = 150
 
 # True/False
 screenshots = True
-record = False
-showvideo = False
+record_video = False
+show_video = False
 debug = False
 
 # detection car limits
