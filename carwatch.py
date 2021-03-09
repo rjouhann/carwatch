@@ -390,7 +390,7 @@ def read(stack) -> None:
                 # delete old logs
                 os.remove("carwatch.log")
                 # re-create new log file
-                
+                logging.basicConfig(filename="carwatch.log", format="%(asctime)s: %(message)s", level=logging.INFO)
                 logging.info("=========================================================")
                 logging.info("screenshots = " + str(config_detection.screenshots))
                 logging.info("record_video = " + str(config_detection.record_video))
