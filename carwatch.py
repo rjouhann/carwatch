@@ -398,11 +398,6 @@ def read(stack) -> None:
 
 
 if __name__ == '__main__':
-    # Initiate logs
-    pid = os.getpid()
-    logname = "logs/" + str(datetime.datetime.now().strftime("%d-%m-%Y")) + "_carwatch_" + str(pid) + ".log"
-    logging.basicConfig(filename=logname, format="%(asctime)s: %(message)s", level=logging.INFO)
-
     # Initiate the parser
     parser = argparse.ArgumentParser(description='Check if cars are waiting long enough at the parking garage gate.')
     parser.add_argument("-R","--report", help="generate report on demand", action="store_true")
@@ -418,6 +413,11 @@ if __name__ == '__main__':
         print("Generate report demand")
         good, bad = build_report()
         sys.exit(1)
+
+    # Initiate logs 
+    pid = os.getpid()
+    logname = "logs/" + str(datetime.datetime.now().strftime("%d-%m-%Y")) + "_carwatch_" + str(pid) + ".log"
+    logging.basicConfig(filename=logname, format="%(asctime)s: %(message)s", level=logging.INFO)
 
     if not os.path.exists('tmp'):
         os.makedirs('tmp')
