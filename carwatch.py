@@ -403,7 +403,7 @@ def read(stack) -> None:
                 file.close()
                 print(str(datetime.datetime.now().strftime("%x %X")) + ": rotate logs")
                 # zip all files available
-                zip_name = 'logs/' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + '_carwatch_logs.zip'
+                zip_name = 'logs/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_carwatch_logs.zip'
                 zipfile.ZipFile(zip_name, 'w').write('carwatch.log')
                 # delete old logs
                 os.remove("carwatch.log")
