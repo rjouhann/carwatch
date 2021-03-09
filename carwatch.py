@@ -390,7 +390,7 @@ def read(stack) -> None:
                 # delete old logs
                 os.remove("carwatch.log")
                 # re-create new log file
-                logging.basicConfig(filename="carwatch.log", format="%(asctime)s: %(message)s", level=logging.INFO)
+                logging.basicConfig(filename="carwatch.log", filemode = 'a', format="%(asctime)s: %(message)s", level=logging.INFO)
                 logging.info("=========================================================")
                 logging.info("screenshots = " + str(config_detection.screenshots))
                 logging.info("record_video = " + str(config_detection.record_video))
@@ -425,7 +425,7 @@ def read(stack) -> None:
 
 if __name__ == '__main__':
     # Initiate logs
-    logging.basicConfig(filename="carwatch.log", format="%(asctime)s: %(message)s", level=logging.INFO)
+    logging.basicConfig(filename="carwatch.log", filemode = 'a', format="%(asctime)s: %(message)s", level=logging.INFO)
 
     # Initiate the parser
     parser = argparse.ArgumentParser(description='Check if cars are waiting long enough at the parking garage gate.')
