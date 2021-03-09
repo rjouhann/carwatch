@@ -381,32 +381,6 @@ def read(stack) -> None:
                 result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', 'tmp/carwatch-report-total-7days.jpg', subject, config_app.receiver_email)
                 file = open("tmp/mail", "w")
                 file.close()
-   
-                logging.info('rotate logs\n')
-                print("rotate logs")
-                # zip all files available
-                zip_name = 'logs/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_carwatch_logs.zip'
-                zipfile.ZipFile(zip_name, 'w').write('carwatch.log')
-                # delete old logs
-                os.remove("carwatch.log")
-                # re-create new log file
-                logging.basicConfig(filename="carwatch.log", filemode = 'a', format="%(asctime)s: %(message)s", level=logging.INFO)
-                logging.info("=========================================================")
-                logging.info("screenshots = " + str(config_detection.screenshots))
-                logging.info("record_video = " + str(config_detection.record_video))
-                logging.info("show_video = " + str(config_detection.show_video))
-                logging.info("debug = " + str(config_detection.debug))
-                logging.info("buffer = " + str(config_detection.buffer))
-                logging.info("limit_detected = " + str(config_detection.limit_detected))
-                logging.info("limit_good = " + str(config_detection.limit_good))
-                logging.info("limit_bad = " + str(config_detection.limit_bad))
-                logging.info("good_car_screenshot = " + str(config_detection.good_car_screenshot))
-                logging.info("delay = " + str(config_detection.delay))
-                logging.info("scaleFactor = " + str(config_detection.scaleFactor))
-                logging.info("minNeighbors = " + str(config_detection.minNeighbors))
-                logging.info("minSize = " + str(config_detection.minSize))
-                logging.info("----------------------------------------------------------")
-                logging.info("log rotation")
 
             if datetime.date.today().weekday() != config_app.report_day and os.path.isfile('tmp/mail'):
                 if config_detection.debug:
@@ -425,7 +399,9 @@ def read(stack) -> None:
 
 if __name__ == '__main__':
     # Initiate logs
-    logging.basicConfig(filename="carwatch.log", filemode = 'a', format="%(asctime)s: %(message)s", level=logging.INFO)
+    pid = os.getpid()
+    logname = "logs/" + str(datetime.datetime.now().strftime("%d-%m-%Y")) + "_carwatch_" + str(pid) + ".log"
+    logging.basicConfig(filename=logname, format="%(asctime)s: %(message)s", level=logging.INFO)
 
     # Initiate the parser
     parser = argparse.ArgumentParser(description='Check if cars are waiting long enough at the parking garage gate.')
