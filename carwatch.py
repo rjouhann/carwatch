@@ -477,8 +477,6 @@ if __name__ == '__main__':
         os.remove("tmp/good")
     if os.path.isfile('tmp/bad'):
         os.remove("tmp/bad")
-    if os.path.isfile('tmp/mail'):
-        os.remove("tmp/mail")
     if os.path.isfile('video/debug.avi'):
         os.remove("video/debug.avi")
     
