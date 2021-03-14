@@ -24,3 +24,4 @@ echo -e "\nprocesses..."
 ps -ef | grep carwatch | grep -v grep
 echo -e "\nlogs..."
 tail -20 logs/$(ls -lrt logs/ | tail -1 | awk '{print $9}')
+rm -f nohup.out
