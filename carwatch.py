@@ -259,7 +259,7 @@ def read(stack) -> None:
             if car == 0 and os.path.isfile('tmp/something') and not os.path.isfile('tmp/unknown') and not os.path.isfile('tmp/good') and not os.path.isfile('tmp/bad'):
                 if file_age('tmp/something') > 60:
                     print('incorrect detection, probably not a car (reset loop i = ' + str(i) +')')
-                    logging.info('incorrect detection, probably not a car (reset loop i = ' + str(i) +')\n')
+                    logging.info('incorrect detection, probably not a car (reset loop i = ' + str(i) +')')
                     os.remove("tmp/something")
                     i = 0
 
@@ -271,12 +271,12 @@ def read(stack) -> None:
                 if i > 1 and i < int(config_detection.limit_detected):
                     cv2.putText(frames, '...', position1, font, 2, (0, 255, 255), 4, cv2.LINE_4) 
                     print('something detected (i = ' + str(i) +')')  
-                    logging.info('something detected (i = ' + str(i) +')\n')
+                    logging.info('something detected (i = ' + str(i) +')')
                     file = open("tmp/something", "w")
                     file.close()
                 if i == (config_detection.limit_detected):
                     print('car detected (i = ' + str(i) +')')
-                    logging.info('car detected (i = ' + str(i) +')\n')
+                    logging.info('car detected (i = ' + str(i) +')')
                     os.remove("tmp/something")
                     # save picture of the car detected
                     if config_detection.screenshots:
@@ -288,7 +288,7 @@ def read(stack) -> None:
                     cv2.putText(frames, 'CAR DETECTED', position1, font, 2, (255, 128, 0), 4, cv2.LINE_4) 
                 if i == int(config_detection.limit_good):
                     print('good car (i = ' + str(i) +')')
-                    logging.info('good car (i = ' + str(i) +')\n')
+                    logging.info('good car (i = ' + str(i) +')')
                     file = open("tmp/good", "w")
                     file.close()
                     # record into CSV
@@ -307,7 +307,7 @@ def read(stack) -> None:
                 # wait for some time before call the car gone and reset the loop
                 if j == int(config_detection.limit_bad):
                     print('bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')')   
-                    logging.info('bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')\n')
+                    logging.info('bad car, left without waiting long enough (i = ' + str(i) +' j = ' + str(j) +')')
                     cv2.putText(frames, 'BAD CAR (' + str(i) +')', position2, font, 2, (0, 255, 255), 4, cv2.LINE_4)
                     if config_detection.screenshots:
                         img_name = 'img/' + str(datetime.datetime.now().strftime("%d-%m-%Y_%H%M%S")) + '_bad_car.jpg'
@@ -337,7 +337,7 @@ def read(stack) -> None:
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
                 if k == int(config_detection.delay):
                     print('good car left (reset loop k = ' + str(k) +')')   
-                    logging.info('good car left (reset loop k = ' + str(k) +')\n')
+                    logging.info('good car left (reset loop k = ' + str(k) +')')
                     os.remove("tmp/good")
                     os.remove("tmp/unknown")
                     i = 0
@@ -354,7 +354,7 @@ def read(stack) -> None:
                 # after car has been flagged, let's always reset i and j to 0 giving some time for the car to leave
                 if k == int(config_detection.delay):
                     print('bad car left (reset loop k = ' + str(k) +')')    
-                    logging.info('bad car left (reset loop k = ' + str(k) +')\n')
+                    logging.info('bad car left (reset loop k = ' + str(k) +')')
                     os.remove("tmp/bad")
                     os.remove("tmp/unknown")
                     i = 0
@@ -368,7 +368,7 @@ def read(stack) -> None:
             # first day of the week, email report
             if datetime.date.today().weekday() == config_app.report_day and not os.path.isfile('tmp/mail'):
                 print("First day of the week, build the report") 
-                logging.info('First day of the week, build the report\n')
+                logging.info('First day of the week, build the report')
                 good, bad = build_report()
                 if config_detection.screenshots:
                     zip_name = archive_img()
