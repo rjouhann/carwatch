@@ -13,7 +13,7 @@ done
 echo -e "\ndelete python cache folder..."
 rm -rf __pycache__
 echo -e "\ncarwatch starting..."
-nohup python3 carwatch.py 2>&1 &> carwatch.log &
+nohup python3 carwatch.py 2>&1 &
 secs=5
 while [ $secs -gt 0 ]; do
     echo -ne "$secs\033[0K\r"

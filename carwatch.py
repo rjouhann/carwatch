@@ -174,7 +174,11 @@ def write(stack, cam, top: int) -> None:
     """
     print("Process to write: %s" % os.getpid())
     logging.info("Process to write: %s" % os.getpid())
-    cap = cv2.VideoCapture(cam)
+    try:
+        cap = cv2.VideoCapture(cam)       
+    except Exception as e:
+        logging.info("Oops! Can't read the video stream.", e.__class__, "occurred.")
+        sys.exit(1)
 
     # record the stream before processing
     if config_detection.record_video:
@@ -233,8 +237,13 @@ def read(stack) -> None:
             position2 = (170, 420) # GOOD CAR, BAD CAR
 
             # reads frames
-            frames = stack.pop()
-
+            try:
+                frames = stack.pop()
+                
+            except Exception as e:
+                logging.info("Oops! Can't read the frame.", e.__class__, "occurred.")
+                break
+                
             # convert to gray scale of each frames
             gray = cv2.cvtColor(frames, cv2.COLOR_BGR2GRAY)
 
