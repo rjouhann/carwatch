@@ -20,6 +20,7 @@ from email import encoders
 import pandas as pd
 from matplotlib import pyplot
 import zipfile
+from PIL import Image
 # used for prog arguments
 import argparse
 import sys
@@ -30,7 +31,7 @@ import config_app
 import config_detection
 
 # send report by email
-def send_email_notification(text, html, image1, image2, subject, receiver_email):
+def send_email_notification(text, html, image1, image2, pdf, subject, receiver_email):
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
     message["From"] = config_app.gmail_user 
@@ -49,6 +50,18 @@ def send_email_notification(text, html, image1, image2, subject, receiver_email)
         msg_img.add_header('Content-Disposition', 'inline', filename=filename)
         message.attach(msg_img)
         print("attach " + str(filename))
+
+    # Add PDF
+    pdf1 = pdf
+    pdf2 = pdf[:-4] + "_" + str(datetime.datetime.now().strftime("%d-%m-%Y")) + ".pdf"
+    os.rename(pdf1, pdf2)
+    part = MIMEBase("application", "octet-stream")
+    part.set_payload(open(pdf2, "rb").read())
+    encoders.encode_base64(part)
+    part.add_header("Content-Disposition", "attachment; filename=\"%s\"" % (pdf2))
+    message.attach(part)
+    print('Includes: ' + str(pdf2))
+    os.remove(pdf2)
 
     # Add HTML/plain-text parts to MIMEMultipart message
     # The email client will try to render the last part first
@@ -142,7 +155,7 @@ def build_report():
     pyplot.tight_layout()
     pyplot.subplots_adjust(top=0.88)
     pyplot.suptitle(config_app.report_title, fontsize=15)
-    pyplot.savefig('tmp/carwatch-report.jpg')
+    pyplot.savefig('tmp/carwatch-report.jpg', dpi=300)
     print("check new tmp/carwatch-report.jpg\n")
     if config_detection.debug:
         pyplot.show()
@@ -156,11 +169,18 @@ def build_report():
     df.sum(axis=0).plot(kind='pie', autopct='%1.1f%%', labels=labels, colors=colors, figsize=(5,5))
     pyplot.ylabel("")
     pyplot.suptitle("Total Good vs Bad cars from last 7 days", fontsize=15)
-    pyplot.savefig('tmp/carwatch-report-total-7days.jpg')
+    pyplot.savefig('tmp/carwatch-report-total-7days.jpg', dpi=300)
     print("check new tmp/carwatch-report-total-7days.jpg\n")
     if config_detection.debug:
         pyplot.show()
     pyplot.close(fig)
+
+    im1 = Image.open("tmp/carwatch-report.jpg")
+    im2 = Image.open("tmp/carwatch-report-total-7days.jpg")
+    im_list = [im2]
+    pdf1_filename = "tmp/carwatch-report.pdf"
+    im1.save(pdf1_filename, "PDF", resolution=100.0, save_all=True, append_images=im_list)
+    print("check new tmp/carwatch-report.pdf\n")
 
     return(good, bad)
 
@@ -381,13 +401,13 @@ def read(stack) -> None:
                 <p><strong>Good cars</strong>: cars waiting at the gate long enough so the gate closes.</p>
                 <p><strong>Bad cars</strong>: cars NOT waiting at the gate long enough.</p>
                 <p></p>
-                <p><img src="cid:tmp/carwatch-report.jpg" alt="Carwatch Report"></p>
-                <p><img src="cid:tmp/carwatch-report-total-7days.jpg" alt="Carwatch Report Total last 7 days"></p>
+                <p><img height="50%" width="50%" src="cid:tmp/carwatch-report.jpg" alt="Carwatch Report"></p>
+                <p><img height="50%" width="50%" src="cid:tmp/carwatch-report-total-7days.jpg" alt="Carwatch Report Total last 7 days"></p>
                 </body>
                 </html>
                 """
                 subject = '[carwatch] ' + str(datetime.datetime.now().strftime("%d-%m-%Y")) + ' ' + config_app.report_title
-                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', 'tmp/carwatch-report-total-7days.jpg', subject, config_app.receiver_email)
+                result_email = send_email_notification(text, html, 'tmp/carwatch-report.jpg', 'tmp/carwatch-report-total-7days.jpg', 'tmp/carwatch-report.pdf', subject, config_app.receiver_email)
                 file = open("tmp/mail", "w")
                 file.close()
 
