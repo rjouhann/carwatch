@@ -39,6 +39,7 @@ pip3 install opencv-python
 pip3 install pytesseract
 pip3 install matplotlib
 pip3 install pandas
+pip3 install Pillow
 ```
 
 After you clone the git repository, rename the file ``config_app.sample.py`` to ``config_app.py`` and edit the mail and RTSP configuration.
