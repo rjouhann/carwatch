@@ -4,6 +4,8 @@
 echo -e "\nstop carwatch..."
 killall python3 # when running on ubuntu
 killall Python # when running on mac
+sudo su - root -c "echo 1 > /proc/sys/vm/drop_caches"
+free -m
 secs=5
 while [ $secs -gt 0 ]; do
     echo -ne "$secs\033[0K\r"
