@@ -1,5 +1,5 @@
 # Clear the buffer stack every time it reaches a certain capacity
-buffer = 150
+buffer = 500
 
 # True/False
 screenshots = True
