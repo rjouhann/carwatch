@@ -9,7 +9,7 @@ debug = False
 
 # detection car limits
 limit_detected = 30 # recommended below 30
-limit_good = 270 # this can be tweek recommended between 300-500
+limit_good = 200 # this can be tweek recommended between 200-500
 limit_bad = 1000 # this can be tweek recommended between 700-1200, at least 2x limit_good
 # when to take the screenshot 
 good_car_screenshot = 300 # generally close to limit_good
